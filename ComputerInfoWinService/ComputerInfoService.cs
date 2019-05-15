@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Runtime.InteropServices;
+using System.Management;
+using System.DirectoryServices;
 
 namespace ComputerInfoWinService
 {
@@ -61,7 +63,7 @@ namespace ComputerInfoWinService
 
             var timer = new Timer();
 
-            timer.Interval = 60000; // 60 seconds
+            timer.Interval = 10000; // 10 seconds
             timer.Elapsed += new ElapsedEventHandler(OnTimer);
             timer.Start();
         }
@@ -74,10 +76,32 @@ namespace ComputerInfoWinService
         public void OnTimer(object sender, ElapsedEventArgs args)
         {
             // TODO: Insert monitoring activities here.
-            eventLog1.WriteEntry("Monitoring the System", EventLogEntryType.Information, eventId++);
+            //var machineName = Environment.MachineName;
+            var domainName = Environment.UserDomainName;
+            //var userName = Environment.UserName;
+
+
+            var list = GetComputerUsers();
+            string info = string.Empty;
+            list.ForEach(x => info += x + Environment.NewLine);
+
+            eventLog1.WriteEntry($"PC info = {info}", EventLogEntryType.Information, eventId++);
         }
 
         [DllImport("advapi32.dll", SetLastError = true)]
         private static extern bool SetServiceStatus(IntPtr handle, ref ServiceStatus serviceStatus);
+        public static List<string> GetComputerUsers()
+        {
+            List<string> users = new List<string>();
+            var path =
+                string.Format("WinNT://{0},computer", Environment.MachineName);
+
+            using (var computerEntry = new DirectoryEntry(path))
+                foreach (DirectoryEntry childEntry in computerEntry.Children)
+                    if (childEntry.SchemaClassName == "User")
+                        users.Add(childEntry.Name);
+
+            return users;
+        }
     }
 }
