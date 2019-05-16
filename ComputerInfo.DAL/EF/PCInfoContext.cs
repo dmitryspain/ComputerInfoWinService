@@ -17,5 +17,6 @@ namespace ComputerInfo.DAL.EF
         }
 
         public DbSet<PCInfo> PCInfos { get; set; }
+        public DbSet<User> Users { get; set; }
     }
 }

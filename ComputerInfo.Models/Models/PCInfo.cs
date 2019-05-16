@@ -11,6 +11,6 @@ namespace ComputerInfo.Models.Models
         public string Name { get; set; }
         public string Manufacturer { get; set; }
         public string Model { get; set; }
-        public List<string> Users { get; set; }
+        public virtual List<User> Users { get; set; }
     }
 }
