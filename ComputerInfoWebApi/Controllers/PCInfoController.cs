@@ -12,24 +12,45 @@ namespace ComputerInfoWebApi.Controllers
     [RoutePrefix("api/pcinfo")]
     public class PCInfoController : ApiController
     {
-        private readonly IRepository<PCInfo> _repository;
+        private readonly IRepository<PCInfo> _infoRepository;
+        private readonly IRepository<User> _userRepository;
 
-        public PCInfoController(IRepository<PCInfo> repository)
+        public PCInfoController(IRepository<PCInfo> repository, IRepository<User> userRepository)
         {
-            _repository = repository;
+            _infoRepository = repository;
+            _userRepository = userRepository;
+        }
+
+        bool isNewUser(IEnumerable<string> usersFromRequest, IEnumerable<string> usersFromDb)
+        {
+            foreach (var userName in usersFromDb)
+            {
+                if (!usersFromRequest.Contains(userName))
+                    return true;
+            }
+
+            return false;
         }
 
         [Route("add")]
         public void Post([FromBody]PCInfo info)
         {
-            _repository.Create(info);
+            //info.Users.ForEach(user => _userRepository.Create(user));
+            
 
-            var item = _repository.GetById(1);
-        }
+            var asd = _infoRepository.GetAllAsQueryable()
+                .Where(x => x.CpuLoad != info.CpuLoad && x.RamLoad != info.RamLoad);
 
-        public string Get()
-        {
-            return "TEST DATA";
+            if(asd == null)
+            {
+                _infoRepository.Create(info);
+            }
+            else
+            {
+
+            }
+
+            var item = _infoRepository.GetById(3);
         }
     }
 }

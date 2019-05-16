@@ -44,6 +44,7 @@ namespace ComputerInfoWinService
     public partial class ComputerInfoService : ServiceBase
     {
         private int eventId = 1;
+        System.Timers.Timer _timer = new System.Timers.Timer();
         private PCInfo _pcInfo = new PCInfo();
 
         public ComputerInfoService()
@@ -68,11 +69,10 @@ namespace ComputerInfoWinService
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
             SetServiceStatus(ServiceHandle, ref serviceStatus);
 
-            var timer = new System.Timers.Timer();
 
-            timer.Elapsed += new ElapsedEventHandler(OnTimer);
-            timer.Start();
-            timer.Interval = 20000;
+            _timer.Elapsed += new ElapsedEventHandler(OnTimer);
+            _timer.Interval = 3000; // 3 sec
+            _timer.Start();
         }
 
         protected override void OnStop()
@@ -82,6 +82,7 @@ namespace ComputerInfoWinService
 
         public async void OnTimer(object sender, ElapsedEventArgs args)
         {
+            _timer.Interval = 60000; //1 min
             #region EventLog
 
             var info = string.Empty;
@@ -110,13 +111,14 @@ namespace ComputerInfoWinService
                     _pcInfo.Name = process["Name"].ToString();
                     _pcInfo.Manufacturer = process["Manufacturer"].ToString();
                     _pcInfo.Model = process["Model"].ToString();
-                    _pcInfo.Users = GetComputerUsers();
+                    _pcInfo.Users = MapToUsers(GetComputerUsers());
                 }
             }
 
             #endregion
             var response = string.Empty;
 
+            info += "Before";
             var myContent = JsonConvert.SerializeObject(_pcInfo);
             HttpContent content = new StringContent(myContent, Encoding.UTF8, "application/json");
 
@@ -129,11 +131,13 @@ namespace ComputerInfoWinService
                     response = result.StatusCode.ToString();
                 }
             }
+            info += response;
+            eventLog1.WriteEntry(info);
         }
 
         [DllImport("advapi32.dll", SetLastError = true)]
         private static extern bool SetServiceStatus(IntPtr handle, ref ServiceStatus serviceStatus);
-        public static List<string> GetComputerUsers()
+        private static List<string> GetComputerUsers()
         {
             List<string> users = new List<string>();
             var path =
@@ -146,5 +150,22 @@ namespace ComputerInfoWinService
 
             return users;
         }
+
+        private List<User> MapToUsers(IEnumerable<string> userList)
+        {
+            var users = new List<User>();
+
+            foreach(var userName in userList)
+            {
+                users.Add(new User
+                {
+                    Name = userName,
+                });
+            }
+
+            return users;
+        }
+
+
     }
 }
