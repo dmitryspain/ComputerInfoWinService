@@ -11,6 +11,11 @@ using System.Timers;
 using System.Runtime.InteropServices;
 using System.Management;
 using System.DirectoryServices;
+using System.Threading;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
+using ComputerInfo.Models.Models;
 
 namespace ComputerInfoWinService
 {
@@ -39,6 +44,8 @@ namespace ComputerInfoWinService
     public partial class ComputerInfoService : ServiceBase
     {
         private int eventId = 1;
+        private PCInfo _pcInfo = new PCInfo();
+
         public ComputerInfoService()
         {
             InitializeComponent();
@@ -61,11 +68,11 @@ namespace ComputerInfoWinService
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
             SetServiceStatus(ServiceHandle, ref serviceStatus);
 
-            var timer = new Timer();
+            var timer = new System.Timers.Timer();
 
-            timer.Interval = 10000; // 10 seconds
             timer.Elapsed += new ElapsedEventHandler(OnTimer);
             timer.Start();
+            timer.Interval = 20000;
         }
 
         protected override void OnStop()
@@ -73,19 +80,55 @@ namespace ComputerInfoWinService
             eventLog1.WriteEntry("In OnStop.");
         }
 
-        public void OnTimer(object sender, ElapsedEventArgs args)
+        public async void OnTimer(object sender, ElapsedEventArgs args)
         {
-            // TODO: Insert monitoring activities here.
-            //var machineName = Environment.MachineName;
-            var domainName = Environment.UserDomainName;
-            //var userName = Environment.UserName;
+            #region EventLog
 
+            var info = string.Empty;
 
-            var list = GetComputerUsers();
-            string info = string.Empty;
-            list.ForEach(x => info += x + Environment.NewLine);
+            SelectQuery query = new SelectQuery(@"Select * from Win32_ComputerSystem");
 
-            eventLog1.WriteEntry($"PC info = {info}", EventLogEntryType.Information, eventId++);
+            using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(query))
+            {
+                foreach (ManagementObject process in searcher.Get())
+                {
+                    var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                    var ramCounter = new PerformanceCounter("Memory", "Available MBytes", String.Empty, Environment.MachineName);
+
+                    cpuCounter.NextValue();
+                    Thread.Sleep(500);
+
+                    //info += "CPU: " + string.Format("{0:##0} %", cpuCounter.NextValue()) + Environment.NewLine;
+                    //info += "RAM: " + ramCounter + " MB" + Environment.NewLine;
+                    //info += "Name: " + process["Name"] + Environment.NewLine;
+                    //info += "Manufacturer: " + process["Manufacturer"] + Environment.NewLine;
+                    //info += "Model: " + process["Model"] + Environment.NewLine;
+                    //GetComputerUsers().ForEach(x => info += x + Environment.NewLine);
+
+                    _pcInfo.CpuLoad = (int)cpuCounter.NextValue();
+                    _pcInfo.RamLoad = (int)ramCounter.NextValue();
+                    _pcInfo.Name = process["Name"].ToString();
+                    _pcInfo.Manufacturer = process["Manufacturer"].ToString();
+                    _pcInfo.Model = process["Model"].ToString();
+                    _pcInfo.Users = GetComputerUsers();
+                }
+            }
+
+            #endregion
+            var response = string.Empty;
+
+            var myContent = JsonConvert.SerializeObject(_pcInfo);
+            HttpContent content = new StringContent(myContent, Encoding.UTF8, "application/json");
+
+            using (var client = new HttpClient())
+            {
+                System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
+                HttpResponseMessage result = await client.PostAsync(new Uri("https://localhost:44338/api/pcinfo/add"), content);
+                if (result.IsSuccessStatusCode)
+                {
+                    response = result.StatusCode.ToString();
+                }
+            }
         }
 
         [DllImport("advapi32.dll", SetLastError = true)]
