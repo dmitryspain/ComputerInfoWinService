@@ -84,7 +84,8 @@ namespace ComputerInfoWebApi.App_Start
         private static void RegisterServices(IKernel kernel)
         {
             kernel.Bind<IRepository<PCInfo>>().To<PCInfoRepository>();
-            kernel.Bind<PCInfoContext>().ToSelf();
+            kernel.Bind<IRepository<User>>().To<UserRepository>();
+            kernel.Bind<PCInfoContext>().ToSelf().WithConstructorArgument("PCInfoConnection");
         }
     }
 }
