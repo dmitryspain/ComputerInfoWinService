@@ -30,7 +30,11 @@ namespace ComputerInfo.DAL.Repositories.Base
 
         public IEnumerable<T> GetAll()
         {
-            return _dbSet.ToList();
+            return _dbSet.AsEnumerable();
+        }
+        public IQueryable<T> GetAllAsQueryable()
+        {
+            return _dbSet.AsQueryable();
         }
 
         public void Update(T item)

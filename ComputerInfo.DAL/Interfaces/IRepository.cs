@@ -12,6 +12,7 @@ namespace ComputerInfo.DAL.Interfaces
         void Create(T item);
         T GetById(int id);
         IEnumerable<T> GetAll();
+        IQueryable<T> GetAllAsQueryable();
         void Update(T item);
         void Delete(int itemId);
     }
