@@ -4,37 +4,37 @@ using ComputerInfo.Models.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Data.Entity.Migrations;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace ComputerInfo.DAL.Repositories.Base
 {
     public class BaseRepository<T> : IRepository<T>, IDisposable where T : BaseEntity
     {
         protected PCInfoContext _context;
-        protected DbSet<T> _dbSet { get; }
+        protected DbSet<T> DbSet { get; }
 
         protected bool isDisposed = false;
 
         public BaseRepository(PCInfoContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            _dbSet = _context.Set<T>();
+            DbSet = _context.Set<T>();
         }
 
         public T GetById(int id)
         {
-            return _dbSet.Find(id);
+            return DbSet.Find(id);
         }
 
         public IEnumerable<T> GetAll()
         {
-            return _dbSet.AsEnumerable();
+            return DbSet.AsEnumerable();
         }
         public IQueryable<T> GetAllAsQueryable()
         {
-            return _dbSet.AsQueryable();
+            return DbSet.AsQueryable();
         }
 
         public void Update(T item)
@@ -43,16 +43,17 @@ namespace ComputerInfo.DAL.Repositories.Base
             _context.SaveChanges();
         }
 
-        public void Create(T item)
+        public int AddOrUpdate(T item)
         {
-            _dbSet.Add(item);
+            DbSet.AddOrUpdate(item);
             _context.SaveChanges();
+            return item.Id;
         }
 
         public void Delete(int itemId)
         {
-            var item = _dbSet.Find(itemId);
-            _dbSet.Remove(item);
+            var item = DbSet.Find(itemId);
+            DbSet.Remove(item);
             _context.SaveChanges();
         }
 
@@ -72,6 +73,11 @@ namespace ComputerInfo.DAL.Repositories.Base
         public void Dispose()
         {
             Dispose(true);
+        }
+
+        public T GetSingle(Expression<Func<T, bool>> expression)
+        {
+            return DbSet.SingleOrDefault(expression);
         }
     }
 }
