@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace ComputerInfo.Models.Models
 {
@@ -11,6 +10,7 @@ namespace ComputerInfo.Models.Models
         public string Name { get; set; }
         public string Manufacturer { get; set; }
         public string Model { get; set; }
-        public virtual List<User> Users { get; set; }
+        public DateTime DateTime { get; set; }
+        public List<User> Users { get; set; }
     }
 }

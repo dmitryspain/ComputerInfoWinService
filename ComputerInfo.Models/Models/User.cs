@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ComputerInfo.Models.Models
+﻿namespace ComputerInfo.Models.Models
 {
     public class User : BaseEntity
     {
         public string Name { get; set; }
+        public int PCInfoId { get; set; }
+        public virtual PCInfo PCInfo { get; set; }
     }
 }
